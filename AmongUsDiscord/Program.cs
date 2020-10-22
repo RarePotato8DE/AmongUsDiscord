@@ -63,7 +63,7 @@ namespace AmongUsDiscord
         {
             Console.Title = "AmongUsDiscord - Developed by RarePotato8DE";
             Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine("AmongUsDiscord - Developed by RarePotato8DE\n");
+            Console.WriteLine(Console.Title + "\n");
             Console.ResetColor();
 
             Console.WriteLine("---------------------------------------------------------------------------\n");
@@ -72,9 +72,6 @@ namespace AmongUsDiscord
             Console.WriteLine("You can find it here https://github.com/denverquane/amonguscapture\n");
             Console.ResetColor();
 
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("The discord integration was made with the open-source DSharpPlus API Wrapper");
-            Console.WriteLine("You can find it here https://github.com/DSharpPlus/DSharpPlus\n");
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("I just made minor changes to the amonguscapture project and added the discord functionality");
             Console.WriteLine("Most work was done by denverquane, developer of amonguscapture and by the dsharpplus team\n");

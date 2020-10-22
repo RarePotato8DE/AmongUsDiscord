@@ -141,7 +141,7 @@ namespace AmongUsDiscord
                 {
                     var impostors = GetPlayerInfos().Where(inf => inf.GetIsImpostor()).ToList();
 
-                    if (impos.Count() != 0)
+                    if (impos.Count() > 0)
                         extraLoops--;
 
                     foreach (var imposter in impostors)
