@@ -180,7 +180,7 @@ namespace AmongUsDiscord
                 }
                 catch (DSharpPlus.Exceptions.UnauthorizedException e)
                 {
-
+                    
                 }
             }
             hasImposterRole.Clear();
