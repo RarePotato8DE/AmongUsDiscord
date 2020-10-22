@@ -4,7 +4,7 @@ With AmongUsDiscord you can monitor everything that happens in among us.
 You have some functions like automatically mute everyone in a specific discord
 channel when you are doing tasks, and unmute them in a discussion.
 
-![](header.png)
+![](header2.png)
 
 ## Usage
 
