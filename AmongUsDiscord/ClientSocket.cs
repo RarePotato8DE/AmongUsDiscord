@@ -126,8 +126,7 @@ namespace AmongUsCapture
 
             if (Program.config.settings.mute_while_tasks)
                 Work.MuteState(e.NewState).ConfigureAwait(false).GetAwaiter().GetResult();
-            if (Program.config.settings.move_when_dead)
-                Work.MoveIfDead(e.NewState).ConfigureAwait(false).GetAwaiter().GetResult();
+            Work.MoveIfDead(e.NewState).ConfigureAwait(false).GetAwaiter().GetResult();
             return;
             if (!socket.Connected) return;
             socket.EmitAsync("state",
@@ -140,8 +139,7 @@ namespace AmongUsCapture
             if (Program.cheat_mode)
                 Console.WriteLine($"PlayerChanged: {e.Name} ({e.Color.ToString()}) {e.Action.ToString()}");
 
-            if (Program.config.settings.move_when_dead)
-                Work.MoveIfDead(e).ConfigureAwait(false).GetAwaiter().GetResult();
+            Work.AddDeadsToList(e).ConfigureAwait(false).GetAwaiter().GetResult();
             return;
             if (!socket.Connected) return;
             socket.EmitAsync("player",

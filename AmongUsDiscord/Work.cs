@@ -55,8 +55,19 @@ namespace AmongUsDiscord
                 {
                     try
                     {
-                        await user.SetMuteAsync(false);
-                        await Task.Delay(100);
+                        if (Program.config.settings.mute_dead_always)
+                        {
+                            if (!Program.deadMembersToMove.Contains(user))
+                            {
+                                await user.SetMuteAsync(false);
+                                await Task.Delay(100);
+                            }
+                        }
+                        else
+                        {
+                            await user.SetMuteAsync(false);
+                            await Task.Delay(100);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -66,9 +77,9 @@ namespace AmongUsDiscord
             }
         }
 
-        public static async Task MoveIfDead(PlayerChangedEventArgs args)
+        public static async Task AddDeadsToList(PlayerChangedEventArgs args)
         {
-            if (Program.deadChannel == null) return;
+            //if (Program.deadChannel == null) return;
             if (Program.mainChannel == null) return;
             foreach (var usr in Program.mainChannel.Users)
                 if (usr != null)
@@ -80,8 +91,11 @@ namespace AmongUsDiscord
 
         public static async Task MoveIfDead(GameState state)
         {
-            if (Program.mainChannel == null) return;
+            if (state == GameState.LOBBY || state == GameState.MENU || state == GameState.UNKNOWN)
+                Program.deadMembersToMove.Clear();
 
+            if (!Program.config.settings.move_when_dead) return;
+            if (Program.mainChannel == null) return;
             if (state == GameState.DISCUSSION)
             {
                 if (Program.deadChannel == null) return;
@@ -180,7 +194,7 @@ namespace AmongUsDiscord
                 }
                 catch (DSharpPlus.Exceptions.UnauthorizedException e)
                 {
-                    
+
                 }
             }
             hasImposterRole.Clear();

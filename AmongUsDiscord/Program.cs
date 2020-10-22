@@ -53,6 +53,7 @@ namespace AmongUsDiscord
             dynamic settings = new JObject();
             settings.move_when_dead = false;
             settings.mute_while_tasks = false;
+            settings.mute_dead_always = false;
             settings.post_lobbycode = false;
             settings.assign_impostor_role = false;
             main.settings = settings;
@@ -164,6 +165,7 @@ namespace AmongUsDiscord
         {
             public bool move_when_dead { get; set; }
             public bool mute_while_tasks { get; set; }
+            public bool mute_dead_always { get; set; }
             public bool post_lobbycode { get; set; }
             public bool assign_impostor_role { get; set; }
         }
