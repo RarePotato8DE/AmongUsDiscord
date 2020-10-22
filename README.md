@@ -1,9 +1,4 @@
 # AmongUsDiscord
-> Makes it easier to play among us while beeing on discord.
-
-[![NPM Version][npm-image]][npm-url]
-[![Build Status][travis-image]][travis-url]
-[![Downloads Stats][npm-downloads]][npm-url]
 
 With AmongUsDiscord you can monitor everything that happens in among us.
 You have some functions like automatically mute everyone in a specific discord
