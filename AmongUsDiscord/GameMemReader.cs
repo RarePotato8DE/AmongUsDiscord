@@ -121,27 +121,21 @@ namespace AmongUsCapture
 
                 if (!cracked && ProcessMemory.IsHooked && !textSend)
                 {
-                    if (Program.debug_mode)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        Console.WriteLine("You are running the official steam version of Among Us");
-                        Console.WriteLine("This tool was made and tested for the version v2020.9.22s");
-                        Console.WriteLine("If you are running a different version, bugs might occur");
-                        Console.ResetColor();
-                    }
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("You are running the official steam version of Among Us");
+                    Console.WriteLine("This tool was made and tested for the version v2020.9.22s");
+                    Console.WriteLine("If you are running a different version, bugs might occur");
+                    Console.ResetColor();
                     textSend = true;
                     continue;
                 }
 
                 if (cracked && ProcessMemory.IsHooked && !textSend)
                 {
-                    if (Program.debug_mode)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine("You are running a cracked version of Among Us");
-                        Console.WriteLine("Some function might be broken or won't work as intented");
-                        Console.ResetColor();
-                    }
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("You are running a cracked version of Among Us");
+                    Console.WriteLine("Some function might be broken or won't work as intented");
+                    Console.ResetColor();
                     cracked = false;
                     textSend = true;
                     continue;

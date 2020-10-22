@@ -133,29 +133,35 @@ namespace AmongUsDiscord
 
         public static async Task NewGameHandler()
         {
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
-            checkForImpostors:
-                var impostors = GetPlayerInfos().Where(inf => inf.GetIsImpostor()).ToList();
-                if (impostors.Count == 0)
+                List<PlayerInfo> impos = new List<PlayerInfo>();
+                int extraLoops = 2;
+                while (impos.Count() == 0 || extraLoops != 0)
                 {
-                    Task.Delay(250);
-                    goto checkForImpostors;
-                }
-                foreach (var imposter in impostors)
-                {
-                    if (Program.cheat_mode)
+                    var impostors = GetPlayerInfos().Where(inf => inf.GetIsImpostor()).ToList();
+
+                    if (impos.Count() != 0)
+                        extraLoops--;
+
+                    foreach (var imposter in impostors)
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"{imposter.GetPlayerName()} ({imposter.GetPlayerColor().ToString()}) is an impostor");
-                        Console.ForegroundColor = ConsoleColor.Gray;
+                        if (impos.Contains(imposter)) continue;
+                        impos.Add(imposter);
+                        if (Program.cheat_mode)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"{imposter.GetPlayerName()} ({imposter.GetPlayerColor().ToString()}) is an impostor");
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                        }
+                        if (Program.config.settings.assign_impostor_role)
+                        {
+                            var discordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == imposter.GetPlayerName().ToLower()).First();
+                            if (discordImposterUser != null)
+                                hasImposterRole.Add(discordImposterUser);
+                        }
                     }
-                    if (Program.config.settings.assign_impostor_role)
-                    {
-                        var discordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == imposter.GetPlayerName().ToLower()).First();
-                        if (discordImposterUser != null)
-                            hasImposterRole.Add(discordImposterUser);
-                    }
+                    await Task.Delay(750);
                 }
             });
         }
