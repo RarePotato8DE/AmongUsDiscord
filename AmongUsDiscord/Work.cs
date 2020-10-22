@@ -35,7 +35,52 @@ namespace AmongUsDiscord
 
             if (state == GameState.TASKS)
             {
-                //await Task.Delay(4000);
+
+                List<PlayerInfo> impos = new List<PlayerInfo>();
+                await Task.Run(async () =>
+                {
+                    int extraLoops = 2;
+                    while (impos.Count() == 0 || extraLoops != 0)
+                    {
+                        var impostors = GetPlayerInfos().Where(inf => inf.GetIsImpostor()).ToList();
+
+                        if (impos.Count() > 0)
+                            extraLoops--;
+
+                        foreach (var imposter in impostors)
+                        {
+                            if (impos.Contains(imposter)) continue;
+                            impos.Add(imposter);
+                            if (Program.cheat_mode)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"{imposter.GetPlayerName()} ({imposter.GetPlayerColor().ToString()}) is an impostor");
+                                Console.ForegroundColor = ConsoleColor.Gray;
+                            }
+                            if (Program.config.settings.assign_impostor_role)
+                            {
+                                var discordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == imposter.GetPlayerName().ToLower()).First();
+                                if (discordImposterUser != null)
+                                    hasImposterRole.Add(discordImposterUser);
+                                if (Program.impostorRole != null)
+                                    foreach (var usr in hasImposterRole)
+                                    {
+                                        try
+                                        {
+                                            await usr.GrantRoleAsync(Program.impostorRole);
+                                            await Task.Delay(200);
+                                        }
+                                        catch (DSharpPlus.Exceptions.UnauthorizedException e)
+                                        {
+
+                                        }
+                                    }
+                            }
+                        }
+                        await Task.Delay(750);
+                    }
+                });
+
                 foreach (var user in Program.mainChannel.Users)
                 {
                     try
@@ -92,7 +137,22 @@ namespace AmongUsDiscord
         public static async Task MoveIfDead(GameState state)
         {
             if (state == GameState.LOBBY || state == GameState.MENU || state == GameState.UNKNOWN)
-                Program.deadMembersToMove.Clear();
+            {
+                if (Program.mainChannel != null)
+                    foreach (var user in Program.mainChannel.Users)
+                    {
+                        try
+                        {
+                            await user.SetMuteAsync(false);
+                            await Task.Delay(150);
+                        }
+                        catch (Exception e)
+                        {
+
+                        }
+                        Program.deadMembersToMove.Clear();
+                    }
+            }
 
             if (!Program.config.settings.move_when_dead) return;
             if (Program.mainChannel == null) return;
@@ -147,37 +207,51 @@ namespace AmongUsDiscord
 
         public static async Task NewGameHandler()
         {
-            await Task.Run(async () =>
-            {
-                List<PlayerInfo> impos = new List<PlayerInfo>();
-                int extraLoops = 2;
-                while (impos.Count() == 0 || extraLoops != 0)
-                {
-                    var impostors = GetPlayerInfos().Where(inf => inf.GetIsImpostor()).ToList();
-
-                    if (impos.Count() > 0)
-                        extraLoops--;
-
-                    foreach (var imposter in impostors)
+            if (Program.impostorRole != null)
+                if (Program.config.settings.assign_impostor_role != false)
+                    foreach (var usr in hasImposterRole)
                     {
-                        if (impos.Contains(imposter)) continue;
-                        impos.Add(imposter);
-                        if (Program.cheat_mode)
+                        try
                         {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"{imposter.GetPlayerName()} ({imposter.GetPlayerColor().ToString()}) is an impostor");
-                            Console.ForegroundColor = ConsoleColor.Gray;
+                            await usr.GrantRoleAsync(Program.impostorRole);
+                            await Task.Delay(200);
                         }
-                        if (Program.config.settings.assign_impostor_role)
+                        catch (DSharpPlus.Exceptions.UnauthorizedException e)
                         {
-                            var discordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == imposter.GetPlayerName().ToLower()).First();
-                            if (discordImposterUser != null)
-                                hasImposterRole.Add(discordImposterUser);
+
                         }
                     }
-                    await Task.Delay(750);
-                }
-            });
+            //await Task.Run(async () =>
+            //{
+            //    List<PlayerInfo> impos = new List<PlayerInfo>();
+            //    int extraLoops = 2;
+            //    while (impos.Count() == 0 || extraLoops != 0)
+            //    {
+            //        var impostors = GetPlayerInfos().Where(inf => inf.GetIsImpostor()).ToList();
+
+            //        if (impos.Count() > 0)
+            //            extraLoops--;
+
+            //        foreach (var imposter in impostors)
+            //        {
+            //            if (impos.Contains(imposter)) continue;
+            //            impos.Add(imposter);
+            //            if (Program.cheat_mode)
+            //            {
+            //                Console.ForegroundColor = ConsoleColor.Red;
+            //                Console.WriteLine($"{imposter.GetPlayerName()} ({imposter.GetPlayerColor().ToString()}) is an impostor");
+            //                Console.ForegroundColor = ConsoleColor.Gray;
+            //            }
+            //            if (Program.config.settings.assign_impostor_role)
+            //            {
+            //                var discordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == imposter.GetPlayerName().ToLower()).First();
+            //                if (discordImposterUser != null)
+            //                    hasImposterRole.Add(discordImposterUser);
+            //            }
+            //        }
+            //        await Task.Delay(750);
+            //    }
+            //});
         }
 
         public static List<DiscordMember> hasImposterRole = new List<DiscordMember>();
