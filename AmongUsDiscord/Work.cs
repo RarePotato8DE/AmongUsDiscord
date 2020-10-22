@@ -35,7 +35,7 @@ namespace AmongUsDiscord
 
             if (state == GameState.TASKS)
             {
-                await Task.Delay(7000);
+                //await Task.Delay(4000);
                 foreach (var user in Program.mainChannel.Users)
                 {
                     try
