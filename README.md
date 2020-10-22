@@ -14,6 +14,7 @@ You can download it for free for x64 and x86 here:
 https://dotnet.microsoft.com/download/dotnet-core/current/runtime
 
 Download and compile the source code or the newest release version.
+Here are the releases https://github.com/RarePotato8DE/AmongUsDiscord/releases
 At the first run the program will create a configuration file (config.json)
 which you can customize to your needs.
 
