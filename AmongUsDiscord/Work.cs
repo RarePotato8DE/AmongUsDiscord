@@ -13,6 +13,10 @@ namespace AmongUsDiscord
         public static GameState oldState;
         public static GameState newState;
         public static List<GameState> states = new List<GameState>();
+        public static List<PlayerChangedEventArgs> deadPlayers = new List<PlayerChangedEventArgs>();
+        public static List<DiscordMember> discordImpostors = new List<DiscordMember>();
+        public static List<DiscordMember> deadDiscordPlayers = new List<DiscordMember>();
+        public static string lastLobbyCode = "";
 
         public static void ChangeStates(GameState state)
         {
@@ -188,7 +192,6 @@ namespace AmongUsDiscord
             }
         }
 
-        public static string lastLobbyCode = "";
         public static async Task PublishLobbyCode(LobbyEventArgs args)
         {
             if (Program.codeChannel == null) return;

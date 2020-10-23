@@ -1,8 +1,12 @@
 using System;
 using System.Drawing;
 using System.Text.Json;
+using System.Threading.Tasks;
 using AmongUsDiscord;
+using DSharpPlus.Entities;
 using SocketIOClient;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace AmongUsCapture
 {
@@ -119,14 +123,31 @@ namespace AmongUsCapture
                 Console.WriteLine($"GameStateChanged: {e.NewState}");
             Work.ChangeStates(e.NewState);
 
-            if (Work.newState == GameState.TASKS && Work.oldState == GameState.LOBBY)
-                Work.NewGameHandler().ConfigureAwait(false).GetAwaiter().GetResult();
             if ((Work.newState == GameState.LOBBY || Work.newState == GameState.MENU) && (Work.oldState == GameState.DISCUSSION || Work.oldState == GameState.TASKS))
-                Work.GameEndedHandler().ConfigureAwait(false).GetAwaiter().GetResult();
+                GameEndedHandler(sender, e);
 
-            if (Program.config.settings.mute_while_tasks)
-                Work.MuteState(e.NewState).ConfigureAwait(false).GetAwaiter().GetResult();
-            Work.MoveIfDead(e.NewState).ConfigureAwait(false).GetAwaiter().GetResult();
+            if (Work.newState == GameState.DISCUSSION)
+                GameDiscussionHandler(sender, e);
+
+            if (Work.newState == GameState.TASKS && (Work.oldState == GameState.DISCUSSION || Work.oldState == GameState.LOBBY))
+            {
+                if (Work.oldState == GameState.LOBBY)
+                {
+                    NewGameStartedHandler(sender, e);
+                }
+                else
+                {
+                    GameContinuesHandler(sender, e);
+                }
+            }
+            //if (Work.newState == GameState.TASKS && Work.oldState == GameState.LOBBY)
+            //    Work.NewGameHandler().ConfigureAwait(false).GetAwaiter().GetResult();
+            //if ((Work.newState == GameState.LOBBY || Work.newState == GameState.MENU) && (Work.oldState == GameState.DISCUSSION || Work.oldState == GameState.TASKS))
+            //    Work.GameEndedHandler().ConfigureAwait(false).GetAwaiter().GetResult();
+
+            //if (Program.config.settings.mute_while_tasks)
+            //    Work.MuteState(e.NewState).ConfigureAwait(false).GetAwaiter().GetResult();
+            //Work.MoveIfDead(e.NewState).ConfigureAwait(false).GetAwaiter().GetResult();
             return;
             if (!socket.Connected) return;
             socket.EmitAsync("state",
@@ -134,29 +155,266 @@ namespace AmongUsCapture
                     .Serialize(e.NewState)); // could possibly use continueWith() w/ callback if result is needed
         }
 
+        private async void GameDiscussionHandler(object sender, GameStateChangedEventArgs e)
+        {
+            //discussion
+            if (Program.config.settings.mute_while_tasks)
+            {
+                if (Program.mainChannel != null)
+                {
+                    List<DiscordMember> deadDiscordUsers = new List<DiscordMember>();
+                    foreach (var dead in Work.deadPlayers)
+                    {
+                        var deadDiscordUserAll = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == dead.Name.ToLower());
+                        if (deadDiscordUserAll != null)
+                            if (deadDiscordUserAll.Count() > 0)
+                            {
+                                var deadDiscordUser = deadDiscordUserAll.First();
+                                if (deadDiscordUser != null)
+                                {
+                                    deadDiscordUsers.Add(deadDiscordUser);
+                                    Work.deadDiscordPlayers.Add(deadDiscordUser);
+                                }
+                            }
+                    }
+
+                    foreach (var user in Program.mainChannel.Users)
+                    {
+                        if (Program.config.settings.mute_dead_always)
+                        {
+                            if (!deadDiscordUsers.Contains(user))
+                            {
+                                await user.SetMuteAsync(false);
+                                await Task.Delay(250);
+                            }
+                        }
+                        else
+                        {
+                            await user.SetMuteAsync(false);
+                            await Task.Delay(250);
+                        }
+                    }
+                }
+            }
+
+            if (Program.config.settings.move_when_dead)
+            {
+                if (Program.deadChannel != null && Program.mainChannel != null)
+                {
+                    foreach (var dead in Work.deadPlayers)
+                    {
+                        var deadDiscordUsersAll = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == dead.Name.ToLower());
+                        if (deadDiscordUsersAll != null && deadDiscordUsersAll.Count() > 0)
+                        {
+                            var deadDiscordUser = deadDiscordUsersAll.First();
+                            if (deadDiscordUser != null)
+                            {
+                                try
+                                {
+                                    await Program.deadChannel.PlaceMemberAsync(deadDiscordUser);
+                                    await Task.Delay(150);
+                                    await deadDiscordUser.SetMuteAsync(false);
+                                    await Task.Delay(100);
+                                }
+                                catch (DSharpPlus.Exceptions.UnauthorizedException ee)
+                                {
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private async void GameContinuesHandler(object sender, GameStateChangedEventArgs e)
+        {
+            //was discussion, now tasks
+            if (Program.config.settings.mute_while_tasks)
+            {
+                if (Program.mainChannel != null)
+                {
+                    foreach (var user in Program.mainChannel.Users)
+                    {
+                        await user.SetMuteAsync(true);
+                        await Task.Delay(250);
+                    }
+                }
+            }
+        }
+
+        private async void NewGameStartedHandler(object sender, GameStateChangedEventArgs e)
+        {
+            //was lobby, now tasks
+            if (Program.config.settings.mute_while_tasks)
+            {
+                if (Program.mainChannel != null)
+                {
+                    foreach (var user in Program.mainChannel.Users)
+                    {
+                        await user.SetMuteAsync(true);
+                        await Task.Delay(250);
+                    }
+                }
+            }
+
+            await Task.Run(async () =>
+            {
+                await Task.Delay(4000);
+                var impostors = Work.GetPlayerInfos().Where(i => i.GetIsImpostor());
+                while (impostors.Count() == 0)
+                {
+                    impostors = Work.GetPlayerInfos().Where(i => i.GetIsImpostor());
+                    await Task.Delay(500);
+                }
+
+                if (Program.cheat_mode)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    foreach (var impostor in impostors)
+                        Console.WriteLine(impostor.GetPlayerName() + "(" + impostor.GetPlayerColor().ToString() + ") is an impostor");
+                    Console.ResetColor();
+                }
+
+                if (Program.mainChannel != null)
+                {
+                    if (Program.config.settings.assign_impostor_role)
+                    {
+                        if (Program.impostorRole != null)
+                        {
+                            foreach (var impostor in impostors)
+                            {
+                                var discordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == impostor.GetPlayerName().ToLower());
+                                if (discordImposterUser != null)
+                                {
+                                    var currentDiscordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == impostor.GetPlayerName().ToLower()).First();
+                                    if (currentDiscordImposterUser != null)
+                                        if (discordImposterUser.Count() > 0)
+                                        {
+                                            Work.discordImpostors.Add(currentDiscordImposterUser);
+                                            try
+                                            {
+                                                await currentDiscordImposterUser.GrantRoleAsync(Program.impostorRole);
+                                                await Task.Delay(250);
+                                            }
+                                            catch (DSharpPlus.Exceptions.UnauthorizedException e)
+                                            {
+
+                                            }
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        private async void GameEndedHandler(object sender, GameStateChangedEventArgs e)
+        {
+            //was discussion or tasks, now menu or lobby
+            Work.deadPlayers.Clear();
+            if (Program.config.settings.mute_while_tasks)
+            {
+                if (Program.mainChannel != null)
+                {
+                    foreach (var user in Program.mainChannel.Users)
+                    {
+                        await user.SetMuteAsync(false);
+                        await Task.Delay(250);
+                    }
+                }
+            }
+
+            if (Program.config.settings.move_when_dead)
+            {
+                if (Program.mainChannel != null && Program.deadChannel != null)
+                {
+                    foreach (var user in Program.deadChannel.Users)
+                    {
+                        try
+                        {
+                            await Program.mainChannel.PlaceMemberAsync(user);
+                            await Task.Delay(150);
+                        }
+                        catch (Exception ex)
+                        {
+
+                        }
+                    }
+                }
+            }
+
+            if (Program.config.settings.assign_impostor_role && Program.impostorRole != null)
+            {
+                foreach (var user in Work.discordImpostors)
+                {
+                    try
+                    {
+                        await user.RevokeRoleAsync(Program.impostorRole);
+                        await Task.Delay(250);
+                    }
+                    catch (DSharpPlus.Exceptions.UnauthorizedException eee)
+                    {
+
+                    }
+                }
+            }
+
+            Work.discordImpostors.Clear();
+            Work.deadDiscordPlayers.Clear();
+        }
+
         private void PlayerChangedHandler(object sender, PlayerChangedEventArgs e)
         {
             if (Program.cheat_mode)
                 Console.WriteLine($"PlayerChanged: {e.Name} ({e.Color.ToString()}) {e.Action.ToString()}");
 
-            Work.AddDeadsToList(e).ConfigureAwait(false).GetAwaiter().GetResult();
+            if (e.Action == PlayerAction.Died)
+                PlayerDiedHandler(sender, e);
+            //Work.AddDeadsToList(e).ConfigureAwait(false).GetAwaiter().GetResult();
             return;
             if (!socket.Connected) return;
             socket.EmitAsync("player",
                 JsonSerializer.Serialize(e)); //Makes code wait for socket to emit before closing thread.
         }
 
-        private void JoinedLobbyHandler(object sender, LobbyEventArgs e)
+        private async void PlayerDiedHandler(object sender, PlayerChangedEventArgs e)
+        {
+            Work.deadPlayers.Add(e);
+        }
+
+        private async void JoinedLobbyHandler(object sender, LobbyEventArgs e)
         {
             if (Program.debug_mode)
                 Console.WriteLine($"JoinedLobby: {e.LobbyCode}");
 
             if (Program.config.settings.post_lobbycode)
-                Work.PublishLobbyCode(e).ConfigureAwait(false).GetAwaiter().GetResult();
+            {
+                if (Program.codeChannel != null)
+                {
+                    var emb = new DiscordEmbedBuilder
+                    {
+                        Color = DiscordColor.Red,
+                        Title = "Among Us Lobby",
+                        Description = $"Region: {e.Region.ToString()}\nCode: {e.LobbyCode}"
+                    };
+                    if (Work.lastLobbyCode != e.LobbyCode)
+                    {
+                        Work.lastLobbyCode = e.LobbyCode;
+                        await Program.codeChannel.SendMessageAsync(embed: emb.Build());
+                    }
+                }
+            }
+
+            //if (Program.config.settings.post_lobbycode)
+            //    Work.PublishLobbyCode(e).ConfigureAwait(false).GetAwaiter().GetResult();
             return;
             if (!socket.Connected) return;
             socket.EmitAsync("lobby", JsonSerializer.Serialize(e));
         }
+
+
 
         public class ConnectedEventArgs : EventArgs
         {
