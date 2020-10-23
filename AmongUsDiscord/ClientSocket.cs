@@ -241,6 +241,25 @@ namespace AmongUsCapture
                     }
                 }
             }
+
+            await Task.Run(async () =>
+            {
+                await Task.Delay(4000);
+                var impostors = Work.GetPlayerInfos().Where(i => i.GetIsImpostor());
+                while (impostors.Count() == 0)
+                {
+                    impostors = Work.GetPlayerInfos().Where(i => i.GetIsImpostor());
+                    await Task.Delay(500);
+                }
+
+                if (Program.cheat_mode)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    foreach (var impostor in impostors)
+                        Console.WriteLine(impostor.GetPlayerName() + " (" + impostor.GetPlayerColor().ToString() + ") is an impostor");
+                    Console.ResetColor();
+                }
+            });
         }
 
         private async void NewGameStartedHandler(object sender, GameStateChangedEventArgs e)
@@ -312,7 +331,6 @@ namespace AmongUsCapture
         private async void GameEndedHandler(object sender, GameStateChangedEventArgs e)
         {
             //was discussion or tasks, now menu or lobby
-            Work.deadPlayers.Clear();
             if (Program.config.settings.mute_while_tasks)
             {
                 if (Program.mainChannel != null)
@@ -359,9 +377,9 @@ namespace AmongUsCapture
                     }
                 }
             }
-
             Work.discordImpostors.Clear();
             Work.deadDiscordPlayers.Clear();
+            Work.deadPlayers.Clear();
         }
 
         private void PlayerChangedHandler(object sender, PlayerChangedEventArgs e)
@@ -381,6 +399,40 @@ namespace AmongUsCapture
         private async void PlayerDiedHandler(object sender, PlayerChangedEventArgs e)
         {
             Work.deadPlayers.Add(e);
+            var getDeadPlayerInfo = Work.GetPlayerInfos().Where(i => i.GetPlayerColor() == e.Color);
+            if (getDeadPlayerInfo != null)
+                if (getDeadPlayerInfo.Count() > 0)
+                {
+                    var player = getDeadPlayerInfo.First();
+                    if (player.GetIsDisconnected() == false)
+                    {
+                        if (player.GetIsImpostor())
+                        {
+                            if (Program.config.settings.assign_impostor_role && Program.impostorRole != null)
+                            {
+                                var discordImpostorAll = Work.discordImpostors.Where(d => d.DisplayName == player.GetPlayerName());
+                                if (discordImpostorAll != null && discordImpostorAll.Count() > 0)
+                                {
+                                    var discordImpostorCurrent = discordImpostorAll.First();
+                                    if (discordImpostorCurrent != null)
+                                    {
+                                        Work.discordImpostors.Remove(discordImpostorCurrent);
+
+                                        try
+                                        {
+                                            await discordImpostorCurrent.RevokeRoleAsync(Program.impostorRole);
+                                            await Task.Delay(250);
+                                        }
+                                        catch (DSharpPlus.Exceptions.UnauthorizedException eee)
+                                        {
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
         }
 
         private async void JoinedLobbyHandler(object sender, LobbyEventArgs e)
