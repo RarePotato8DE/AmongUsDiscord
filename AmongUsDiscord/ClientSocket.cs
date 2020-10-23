@@ -158,6 +158,35 @@ namespace AmongUsCapture
         private async void GameDiscussionHandler(object sender, GameStateChangedEventArgs e)
         {
             //discussion
+            if (Program.config.settings.move_when_dead)
+            {
+                if (Program.deadChannel != null && Program.mainChannel != null)
+                {
+                    foreach (var dead in Work.deadPlayers)
+                    {
+                        var deadDiscordUsersAll = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == dead.Name.ToLower());
+                        if (deadDiscordUsersAll != null && deadDiscordUsersAll.Count() > 0)
+                        {
+                            var deadDiscordUser = deadDiscordUsersAll.First();
+                            if (deadDiscordUser != null)
+                            {
+                                try
+                                {
+                                    await Program.deadChannel.PlaceMemberAsync(deadDiscordUser);
+                                    await Task.Delay(150);
+                                    await deadDiscordUser.SetMuteAsync(false);
+                                    await Task.Delay(100);
+                                }
+                                catch (DSharpPlus.Exceptions.UnauthorizedException ee)
+                                {
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (Program.config.settings.mute_while_tasks)
             {
                 if (Program.mainChannel != null)
@@ -192,35 +221,6 @@ namespace AmongUsCapture
                         {
                             await user.SetMuteAsync(false);
                             await Task.Delay(250);
-                        }
-                    }
-                }
-            }
-
-            if (Program.config.settings.move_when_dead)
-            {
-                if (Program.deadChannel != null && Program.mainChannel != null)
-                {
-                    foreach (var dead in Work.deadPlayers)
-                    {
-                        var deadDiscordUsersAll = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == dead.Name.ToLower());
-                        if (deadDiscordUsersAll != null && deadDiscordUsersAll.Count() > 0)
-                        {
-                            var deadDiscordUser = deadDiscordUsersAll.First();
-                            if (deadDiscordUser != null)
-                            {
-                                try
-                                {
-                                    await Program.deadChannel.PlaceMemberAsync(deadDiscordUser);
-                                    await Task.Delay(150);
-                                    await deadDiscordUser.SetMuteAsync(false);
-                                    await Task.Delay(100);
-                                }
-                                catch (DSharpPlus.Exceptions.UnauthorizedException ee)
-                                {
-
-                                }
-                            }
                         }
                     }
                 }
@@ -272,7 +272,7 @@ namespace AmongUsCapture
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     foreach (var impostor in impostors)
-                        Console.WriteLine(impostor.GetPlayerName() + "(" + impostor.GetPlayerColor().ToString() + ") is an impostor");
+                        Console.WriteLine(impostor.GetPlayerName() + " (" + impostor.GetPlayerColor().ToString() + ") is an impostor");
                     Console.ResetColor();
                 }
 
@@ -284,24 +284,23 @@ namespace AmongUsCapture
                         {
                             foreach (var impostor in impostors)
                             {
-                                var discordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == impostor.GetPlayerName().ToLower());
-                                if (discordImposterUser != null)
+                                var discordImposterUsers = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == impostor.GetPlayerName().ToLower());
+                                if (discordImposterUsers != null && discordImposterUsers.Count() > 0)
                                 {
-                                    var currentDiscordImposterUser = Program.mainChannel.Users.Where(u => u.DisplayName.ToLower() == impostor.GetPlayerName().ToLower()).First();
+                                    var currentDiscordImposterUser = discordImposterUsers.First();
                                     if (currentDiscordImposterUser != null)
-                                        if (discordImposterUser.Count() > 0)
+                                    {
+                                        Work.discordImpostors.Add(currentDiscordImposterUser);
+                                        try
                                         {
-                                            Work.discordImpostors.Add(currentDiscordImposterUser);
-                                            try
-                                            {
-                                                await currentDiscordImposterUser.GrantRoleAsync(Program.impostorRole);
-                                                await Task.Delay(250);
-                                            }
-                                            catch (DSharpPlus.Exceptions.UnauthorizedException e)
-                                            {
-
-                                            }
+                                            await currentDiscordImposterUser.GrantRoleAsync(Program.impostorRole);
+                                            await Task.Delay(250);
                                         }
+                                        catch (DSharpPlus.Exceptions.UnauthorizedException e)
+                                        {
+
+                                        }
+                                    }
                                 }
                             }
                         }
